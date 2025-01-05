@@ -4,6 +4,12 @@ import pkg from 'pg';
 const { Pool } = pkg;
 import dotenv from "dotenv";
 import { User } from "./types/user";
+import { createClient } from "./config/supabase";
+
+const supabase = createClient(
+  process.env.SUPABASE_ANON_KEY,
+  process.env.SUPABASE_URL
+);
 
 dotenv.config();
 
@@ -22,6 +28,34 @@ const pool = new Pool({
   ssl: {
     rejectUnauthorized: false,
   },
+});
+
+app.post("/api/register", async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+    if (error) throw error;
+    res.json({ message: "registration successful!", user: data.user });
+  } catch (error) {
+    res.status(400).json({ error });
+  }
+});
+
+app.post("/api/login", async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
+    res.json({ token: data.session.access_token });
+  } catch (error) {
+    res.status(400).json({ error });
+  }
 });
 
 app.get("/", (req: QueryRequest, res: express.Response) => {
